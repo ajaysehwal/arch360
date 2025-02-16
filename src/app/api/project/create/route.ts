@@ -27,8 +27,8 @@ export const POST = async (req: Request) => {
         name,
         description,
         ownerId: userId,
-        floor_map_url,
-        top_view_url,
+        floorMapUrl: floor_map_url,
+        topViewUrl: top_view_url || '',
       },
     });
     return NextResponse.json({

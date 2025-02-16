@@ -1,128 +1,63 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { useProjectStore } from "@/store/project";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { projectApi } from "@/utils/requests";
+import { Download, Loader2, Plus, Save, X } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { Hotspots } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import { Command, Download, Plus, Share, X } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Hotspots, Project } from "@prisma/client";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import RightSidebar from "./components/RightSidebar";
-async function getProject(id: string) {
-  try {
-    const { data } = await projectApi.getProject(id);
-    return data.project;
-  } catch (error) {
-    console.error("Failed to fetch project:", error);
-    return null;
-  }
-}
+import LeftSidebar from "./components/leftSidebar";
+import { useHotspots } from "@/hooks/useHotspots";
+import { useProject } from "@/hooks/useProject";
+import { useUser } from "@clerk/nextjs";
 
-function ProjectPage() {
+import { handleImageUpload } from "@/utils/image-upload";
+import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
+
+const ProjectPage: React.FC = () => {
   const params = useParams();
-  const [loading, setLoading] = useState(false);
-  const { setCurrentProject, currentProject: project } = useProjectStore();
-  const [isAddingHotspot, setIsAddingHotspot] = useState(false);
-  const [hotspots, setHotspots] = useState<Hotspots[]>([]);
-  const [selectedHotspot, setSelectedHotspot] = useState<string | null>(null);
-  const imageRef = useRef<HTMLDivElement>(null);
-  const spotRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const { user } = useUser();
+  const { toast } = useToast();
+  const imageRef = React.useRef<HTMLDivElement>(null);
+  const { project, loading } = useProject(params.id as string);
+  const [isSaving, setIsSaving] = useState(false);
+  const {
+    hotspots,
+    selectedHotspot,
+    isAddingHotspot,
+    spotRefs,
+    handleAddHotspot,
+    handleSpotNameChange,
+    handleDeleteSpot,
+    handleSpotSelect,
+    handleSpotImageUpload: uploadSpotImage,
+    setIsAddingHotspot,
+  } = useHotspots(params.id as string);
 
-  useEffect(() => {
-    async function fetchProject() {
-      setLoading(true);
-      if (params.id) {
-        try {
-          const project = await getProject(params.id as string);
-          setCurrentProject(project);
-        } catch (error) {
-          console.error("Failed to fetch project:", error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    }
-    fetchProject();
-  }, [params.id, setCurrentProject]);
-
-  const handleImageClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isAddingHotspot || !imageRef.current) return;
-
-    const rect = imageRef.current.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    const newHotspot: Hotspots = {
-      id: Date.now().toString(),
-      x,
-      y,
-      url: "",
-      projectId: params.id as string,
-      updatedAt: new Date(),
-      createdAt: new Date(),
-      label: `Room ${hotspots.length + 1}`,
-    };
-
-    setHotspots((prev) => [...prev, newHotspot]);
-    console.log(hotspots);
-    setIsAddingHotspot(false);
-  };
-  useEffect(() => {
-    if (selectedHotspot && spotRefs.current[selectedHotspot]) {
-      spotRefs.current[selectedHotspot]?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await axios.post(`/api/project/${params.id}/save`, {
+        hotspots,
+      });
+      toast({
+        title: "Project saved",
+        description: "Your project has been saved",
+      });
+      setIsSaving(false);
+    } catch (error) {
+      console.error("Failed to save project:", error);
+      setIsSaving(false);
+      toast({
+        title: "Failed to save project",
+        description: "Please try again",
       });
     }
-  }, [selectedHotspot]);
-
-  if (loading || !project) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-  const handleSpotNameChange = (id: string, newName: string) => {
-    setHotspots((spots) =>
-      spots.map((spot) => (spot.id === id ? { ...spot, label: newName } : spot))
-    );
   };
-
-  // const handleRoomImageUpload = (
-  //   event: React.ChangeEvent<HTMLInputElement>,
-  //   hotspotId: string
-  // ) => {
-  //   const file = event.target.files?.[0];
-  //   if (file) {
-  //     const reader = new FileReader();
-  //     reader.onloadend = () => {
-  //       setHotspots(
-  //         hotspots.map((hotspot) =>
-  //           hotspot.id === hotspotId
-  //             ? { ...hotspot, roomImage: reader.result as string }
-  //             : hotspot
-  //         )
-  //       );
-  //     };
-  //     reader.readAsDataURL(file);
-  //   }
-  // };
-  const Tools = [
+  const tools = [
     {
       icon: isAddingHotspot ? X : Plus,
       label: isAddingHotspot ? "Cancel" : "Add Spot",
@@ -135,196 +70,164 @@ function ProjectPage() {
       action: () => null,
       className: "",
     },
+    {
+      icon: isSaving ? Loader2 : Save,
+      label: "Save",
+      action: handleSave,
+      className: isSaving ? "animate-spin" : "",
+    },
   ];
-  const handleSpotImageUpload = (
+
+  const handleImageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isAddingHotspot || !imageRef.current) return;
+
+    const rect = imageRef.current.getBoundingClientRect();
+    const position = {
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100,
+    };
+
+    handleAddHotspot(position);
+  };
+
+  const handleSpotImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement> | null,
     spotId: string
   ) => {
     if (!event) {
-      // Handle image removal
-      setHotspots((spots) =>
-        spots.map((spot) =>
-          spot.id === spotId ? { ...spot, roomImage: undefined } : spot
-        )
-      );
+      uploadSpotImage(null, spotId);
       return;
     }
 
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setHotspots((spots) =>
-          spots.map((spot) =>
-            spot.id === spotId
-              ? { ...spot, roomImage: reader.result as string }
-              : spot
-          )
-        );
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    if (!file || !user?.id) return;
 
-  const handleDeleteSpot = (id: string) => {
-    setHotspots((spots) => spots.filter((spot) => spot.id !== id));
-    if (selectedHotspot === id) {
-      setSelectedHotspot(null);
+    try {
+      const url = await handleImageUpload(file, user.id, (progress) => {
+        console.log(`Uploading... ${progress}% done`);
+      });
+      uploadSpotImage(url, spotId);
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+      // Here you might want to show a toast notification to the user
     }
   };
+  console.log(hotspots);
+
+  if (loading || !project) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-4 bg-gray-50 dark:bg-gray-900 h-[90vh]">
-      <main className="container mx-auto">
+    <div className="flex flex-col gap-4 bg-gray-50 dark:bg-gray-900 h-[90vh] w-full">
+      <main className="w-full">
         <div className="flex w-full justify-between items-center">
-          {/* Toolbar */}
-          <div className="min-w-[50px] h-[90vh] flex flex-col gap-1 items-center">
-            <Sidebar
-              collapsible="none"
-              className="!w-[calc(var(--sidebar-width-icon)_+_1px)] border-r"
-            >
-              <SidebarContent>
-                <SidebarGroup>
-                  <SidebarGroupContent className="px-1.5 md:px-0">
-                    <SidebarMenu>
-                      {Tools.map((item, i) => (
-                        <SidebarMenuItem key={i}>
-                          <SidebarMenuButton
-                            onClick={item.action}
-                            tooltip={{
-                              children: item.label,
-                              hidden: false,
-                            }}
-                            className={`px-2.5 md:px-2`}
-                          >
-                            <item.icon className={item.className} />
-                            <span>{item.label}</span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </SidebarContent>
-            </Sidebar>
-          </div>
-          <div className="relative w-full h-[90vh] dark:bg-gray-800 shadow-lg overflow-hidden dotted-background">
-            <TransformWrapper
-              smooth={true}
-              initialScale={1}
-              initialPositionX={0}
-              initialPositionY={0}
-              minScale={0.5}
-              maxScale={2}
-              limitToBounds={false}
-            >
-              <TransformComponent>
-                <div onClick={handleImageClick} ref={imageRef}>
-                  <Image
-                    src={project.floor_map_url}
-                    alt="Floor Map"
-                    width={1100}
-                    height={600}
-                    objectFit="contain"
-                    className="transition-all duration-300 ease-out dark:filter dark:brightness-90"
-                  />
-                  {hotspots.map((hotspot) => (
-                    <div
-                      key={hotspot.id}
-                      className={`absolute w-6 h-6 -ml-3 -mt-3 rounded-full flex items-center justify-center 
-                    ${
-                      selectedHotspot === hotspot.id
-                        ? "bg-blue-500"
-                        : "bg-red-500"
-                    } 
-                    hover:bg-blue-600 cursor-pointer transition-colors`}
-                      style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedHotspot(
-                          selectedHotspot === hotspot.id ? null : hotspot.id
-                        );
-                      }}
-                    >
-                      <span className="text-white text-xs font-bold">
-                        {hotspots.indexOf(hotspot) + 1}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </TransformComponent>
-            </TransformWrapper>
-          </div>
-          <div className="h-[90vh]">
-            <Sidebar side="right" collapsible="none">
-              <SidebarHeader>
-                <div className="p-2 border-b flex justify-between items-center">
-                  <p className="text-sm text-gray-500">
-                    {hotspots.length} spots added
-                  </p>
-                  <div className="flex justify-between items-center gap-2">
-                    <button className="shadow-[0_4px_14px_0_rgb(0,118,255,39%)] hover:shadow-[0_6px_20px_rgba(0,118,255,23%)] hover:bg-[rgba(0,118,255,0.9)] px-4 py-2 bg-[#0070f3] text-white font-light transition duration-200 ease-linear rounded-2xl">
-                      Publish
-                    </button>
-                  </div>
-                </div>
-              </SidebarHeader>
+          <LeftSidebar tools={tools} />
 
-              <SidebarContent>
-                <SidebarGroup>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      <ScrollArea className="h-[500px] flex flex-col gap-2 rounded-md">
-                        {hotspots.map((spot, i) => (
-                          <SidebarMenuItem
-                            key={i}
-                            className={`p-2 flex flex-col gap-1`}
-                            ref={(el) => (spotRefs.current[spot.id] = el)}
-                          >
-                            <div
-                              className={`p-4 rounded-lg border transition-all duration-200 ${
-                                selectedHotspot === spot.id
-                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                  : "border-gray-200 dark:border-gray-700"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="w-6 text-sm font-medium">
-                                  {i + 1}
-                                </span>
-                                <Input
-                                  placeholder="Spot name"
-                                  className="flex-1"
-                                  onChange={(e) =>
-                                    handleSpotNameChange(
-                                      spot.id,
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
+          <MapView
+            project={project}
+            hotspots={hotspots}
+            selectedHotspot={selectedHotspot}
+            imageRef={imageRef}
+            onImageClick={handleImageClick}
+            onHotspotClick={handleSpotSelect}
+          />
 
-                              <Input
-                                type="file"
-                                onChange={(e) =>
-                                  handleSpotImageUpload(e, spot.id)
-                                }
-                                placeholder="upload spot image"
-                              />
-                            </div>
-                          </SidebarMenuItem>
-                        ))}
-                      </ScrollArea>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </SidebarContent>
-            </Sidebar>
-          </div>
+          <RightSidebar
+            onSpotImageUpload={handleSpotImageUpload}
+            onSpotNameChange={handleSpotNameChange}
+            onDeleteSpot={handleDeleteSpot}
+            selectedHotspot={selectedHotspot}
+            hotspots={hotspots}
+            spotRefs={spotRefs}
+            projectId={params.id as string}
+          />
         </div>
       </main>
     </div>
   );
+};
+
+interface MapViewProps {
+  project: Project; // Replace with proper type
+  hotspots: Hotspots[];
+  selectedHotspot: string | null;
+  imageRef: React.RefObject<HTMLDivElement>;
+  onImageClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onHotspotClick: (id: string) => void;
 }
+
+const MapView: React.FC<MapViewProps> = ({
+  project,
+  hotspots,
+  selectedHotspot,
+  imageRef,
+  onImageClick,
+  onHotspotClick,
+}) => (
+  <div className="relative w-full h-[90vh] dark:bg-gray-800 shadow-lg overflow-hidden dotted-background">
+    <TransformWrapper
+      smooth={true}
+      initialScale={1}
+      initialPositionX={0}
+      initialPositionY={0}
+      minScale={0.5}
+      maxScale={2}
+      limitToBounds={false}
+    >
+      <TransformComponent>
+        <div onClick={onImageClick} ref={imageRef}>
+          <Image
+            src={project.floorMapUrl}
+            alt="Floor Map"
+            width={1100}
+            height={600}
+            objectFit="contain"
+            className="transition-all duration-300 ease-out dark:filter dark:brightness-90"
+          />
+          <HotspotMarkers
+            hotspots={hotspots}
+            selectedHotspot={selectedHotspot}
+            onHotspotClick={onHotspotClick}
+          />
+        </div>
+      </TransformComponent>
+    </TransformWrapper>
+  </div>
+);
+
+interface HotspotMarkersProps {
+  hotspots: Hotspots[];
+  selectedHotspot: string | null;
+  onHotspotClick: (id: string) => void;
+}
+
+const HotspotMarkers: React.FC<HotspotMarkersProps> = ({
+  hotspots,
+  selectedHotspot,
+  onHotspotClick,
+}) => (
+  <>
+    {hotspots.map((hotspot, index) => (
+      <div
+        key={hotspot.id}
+        className={`absolute w-6 h-6 -ml-3 -mt-3 rounded-full flex items-center justify-center 
+          ${selectedHotspot === hotspot.id ? "bg-blue-500" : "bg-red-500"} 
+          hover:bg-blue-600 cursor-pointer transition-colors`}
+        style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onHotspotClick(hotspot.id);
+        }}
+      >
+        <span className="text-white text-xs font-bold">{index + 1}</span>
+      </div>
+    ))}
+  </>
+);
 
 export default ProjectPage;

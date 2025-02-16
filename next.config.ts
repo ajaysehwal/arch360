@@ -12,7 +12,15 @@ const nextConfig: NextConfig = {
       layers: true,
     };
     return config;
-  }
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/image/:path*',
+        destination: 'https://d2dwl57aty2szs.cloudfront.net/:path*',
+      },
+    ]
+  },
 
 
 

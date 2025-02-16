@@ -17,7 +17,7 @@ import { Plus, Upload, Image, X, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Project } from "@prisma/client";
+
 interface FileUploadBoxProps {
   file: File | null;
   setFile: (file: File | null) => void;
@@ -25,17 +25,6 @@ interface FileUploadBoxProps {
   isOptional?: boolean;
   isDragging: boolean;
   setIsDragging: (isDragging: boolean) => void;
-}
-
-interface UploadResponse {
-  success: boolean;
-  url: string;
-}
-
-interface CreateProjectResponse {
-  success: boolean;
-  error?: string;
-  project?: Project;
 }
 
 const FileUploadBox: React.FC<FileUploadBoxProps> = ({
@@ -58,13 +47,13 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({
   return (
     <div
       className={`
-        relative rounded-lg border-2 border-dashed p-6
-        transition-all duration-200 ease-in-out
-        hover:border-primary/50 hover:bg-primary/5
-        ${isDragging ? "border-primary bg-primary/10" : "border-border"}
-        ${file ? "border-success bg-success/5" : ""}
+        group relative overflow-hidden rounded-xl border-2 border-dashed p-6
+        transition-all duration-300 ease-out
+        hover:border-primary hover:bg-primary/5
+        ${isDragging ? "scale-102 border-primary bg-primary/10" : "border-slate-200 dark:border-slate-800"}
+        ${file ? "border-emerald-500 bg-emerald-50/50 dark:border-emerald-500/50 dark:bg-emerald-950/20" : ""}
       `}
-      onDragOver={(e: React.DragEvent<HTMLDivElement>) => {
+      onDragOver={(e) => {
         e.preventDefault();
         setIsDragging(true);
       }}
@@ -74,48 +63,46 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({
       <input
         type="file"
         accept="image/*"
-        className="absolute inset-0 opacity-0 cursor-pointer"
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          setFile(e.target.files?.[0] || null)
-        }
+        className="absolute inset-0 cursor-pointer opacity-0"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
       />
-      <div className="flex flex-col items-center justify-center space-y-3 text-center">
+      <div className="flex flex-col items-center justify-center space-y-4 text-center">
         {file ? (
           <>
-            <div className="relative p-4 bg-success/10 rounded-full">
-              <Image className="h-8 w-8 text-success" />
+            <div className="relative rounded-full bg-emerald-100 p-4 dark:bg-emerald-950/50">
+              <Image className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="font-medium text-success">{file.name}</p>
-              <p className="text-xs text-success/80">
+              <p className="font-medium text-emerald-600 dark:text-emerald-400">{file.name}</p>
+              <p className="mt-1 text-xs text-emerald-600/80 dark:text-emerald-400/80">
                 Click or drag to replace
               </p>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e: React.MouseEvent) => {
+              onClick={(e) => {
                 e.stopPropagation();
                 setFile(null);
               }}
-              className="absolute top-2 right-2 hover:bg-error/10 hover:text-error"
+              className="absolute right-2 top-2 h-8 w-8 rounded-full p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950/50"
             >
               <X className="h-4 w-4" />
             </Button>
           </>
         ) : (
           <>
-            <div className="p-4 bg-muted/30 rounded-full">
-              <Upload className="h-8 w-8 text-muted-foreground" />
+            <div className="rounded-full bg-slate-100 p-4 transition-transform group-hover:scale-110 dark:bg-slate-800">
+              <Upload className="h-8 w-8 text-slate-600 dark:text-slate-400" />
             </div>
             <div>
-              <p className="font-medium">
+              <p className="font-medium text-slate-900 dark:text-slate-100">
                 {title}{" "}
                 {isOptional && (
-                  <span className="text-muted-foreground">(Optional)</span>
+                  <span className="text-slate-500 dark:text-slate-400">(Optional)</span>
                 )}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Drop your file here or click to browse
               </p>
             </div>
@@ -136,26 +123,6 @@ export function NewProject(): JSX.Element {
   const [open, setOpen] = useState<boolean>(false);
   const { user } = useUser();
   const router = useRouter();
-  const uploadImage = async (file: File): Promise<string> => {
-    if (!user) throw new Error("User not found");
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("user_id", user.id);
-
-    try {
-      const { data } = await axios.post<UploadResponse>(
-        "/api/upload",
-        formData
-      );
-      if (!data.success) throw new Error("Upload failed");
-      return data.url;
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        throw new Error(error.response?.data?.message || "Upload failed");
-      }
-      throw error;
-    }
-  };
 
   const handleSubmit = async (): Promise<void> => {
     if (!projectName || !floorPlan) {
@@ -167,21 +134,23 @@ export function NewProject(): JSX.Element {
     setError("");
 
     try {
+      const formData = new FormData();
+      formData.append("file", floorPlan);
+      formData.append("user_id", user?.id || "");
+
       const floor_plan = await uploadImage(floorPlan);
       const top_view = topView ? await uploadImage(topView) : null;
 
-      const { data } = await axios.post<CreateProjectResponse>(
-        "/api/project/create",
-        {
-          name: projectName,
-          floor_map_url: floor_plan,
-          top_view_url: top_view,
-        }
-      );
+      const { data } = await axios.post("/api/project/create", {
+        name: projectName,
+        floor_map_url: floor_plan,
+        top_view_url: top_view,
+      });
 
       if (!data.success) {
         throw new Error(data.error || "Failed to create project");
       }
+
       setProjectName("");
       setFloorPlan(null);
       setTopView(null);
@@ -196,30 +165,53 @@ export function NewProject(): JSX.Element {
     }
   };
 
+  const uploadImage = async (file: File): Promise<string> => {
+    if (!user) throw new Error("User not found");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("user_id", user.id);
+
+    try {
+      const { data } = await axios.post("/api/upload", formData);
+      if (!data.success) throw new Error("Upload failed");
+      return data.url;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.response?.data?.message || "Upload failed");
+      }
+      throw error;
+    }
+  };
+
   return (
-    <Dialog open={open}>
-      <DialogTrigger onClick={() => setOpen(true)} asChild>
-        <Button
-          size="sm"
-          className="gap-2 hover:scale-105 transition-transform"
-        >
-          <Plus className="h-5 w-5" /> New Project
-        </Button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+      <Button
+        size="sm"
+        className="group relative rounded-lg bg-purple-600 px-4 py-2 hover:bg-purple-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] dark:bg-purple-500"
+      >
+        <span className="relative flex items-center gap-2">
+          <Plus className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+          New Project
+          <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-400/0 via-purple-400/30 to-purple-400/0 opacity-0 group-hover:animate-shine" />
+        </span>
+      </Button>
+
+
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <DialogTitle className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-3xl font-bold text-transparent">
             Create New Project
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Start your new project by uploading your floor plan and optional top
-            view.
+          <DialogDescription className="text-base text-slate-500 dark:text-slate-400">
+            Start your new project by uploading your floor plan and optional top view.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-6">
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="animate-shake border-red-500/50 bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -233,14 +225,12 @@ export function NewProject(): JSX.Element {
               id="projectName"
               placeholder="Enter a memorable name for your project"
               value={projectName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setProjectName(e.target.value)
-              }
-              className="h-12 text-lg"
+              onChange={(e) => setProjectName(e.target.value)}
+              className="h-12 text-lg transition-shadow duration-300 focus:ring-4 focus:ring-primary/20 dark:focus:ring-primary/10"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid gap-6 md:grid-cols-2">
             <FileUploadBox
               file={floorPlan}
               setFile={setFloorPlan}
@@ -259,29 +249,30 @@ export function NewProject(): JSX.Element {
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 sm:gap-3">
           <Button
             onClick={() => setOpen(false)}
             variant="outline"
             type="button"
-            className="hover:bg-muted/50"
+            className="hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            className="gap-2 min-w-[120px]"
+            className="min-w-[140px] gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/20"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <div className="animate-pulse flex gap-2 items-center">
-                <Loader2 className="animate-spin" />
-                Creating...
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="animate-pulse">Creating...</span>
               </div>
             ) : (
               <>
-                <Plus className="h-4 w-4" /> Create Project
+                <Plus className="h-4 w-4" />
+                Create Project
               </>
             )}
           </Button>

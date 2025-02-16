@@ -67,7 +67,7 @@ export default function RootLayout({
                   <div className="flex items-center gap-2">
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
-                    <Breadcrumb>
+                    {/* <Breadcrumb>
                       <BreadcrumbList>
                         <BreadcrumbItem className="hidden md:block">
                           <BreadcrumbLink href="#">All Inboxes</BreadcrumbLink>
@@ -77,7 +77,7 @@ export default function RootLayout({
                           <BreadcrumbPage>Inbox</BreadcrumbPage>
                         </BreadcrumbItem>
                       </BreadcrumbList>
-                    </Breadcrumb>
+                    </Breadcrumb> */}
                   </div>
                   <div>
                     <ModeToggle />
