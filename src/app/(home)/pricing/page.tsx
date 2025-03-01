@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Star } from "lucide-react";
+import { Check } from "lucide-react";
 import { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 

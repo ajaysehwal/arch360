@@ -5,17 +5,17 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { Download, Loader2, Plus, Save, X } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { Hotspots, Project } from "@prisma/client";
+import { Hotspot, Project } from "@prisma/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import RightSidebar from "./components/RightSidebar";
 import LeftSidebar from "./components/leftSidebar";
 import { useHotspots } from "@/hooks/useHotspots";
 import { useProject } from "@/hooks/useProject";
 import { useUser } from "@clerk/nextjs";
-
 import { handleImageUpload } from "@/utils/image-upload";
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
+export const runtime = "edge";
 
 const ProjectPage: React.FC = () => {
   const params = useParams();
@@ -112,7 +112,6 @@ const ProjectPage: React.FC = () => {
       // Here you might want to show a toast notification to the user
     }
   };
-  console.log(hotspots);
 
   if (loading || !project) {
     return (
@@ -132,12 +131,13 @@ const ProjectPage: React.FC = () => {
             project={project}
             hotspots={hotspots}
             selectedHotspot={selectedHotspot}
-            imageRef={imageRef}
+            imageRef={imageRef as React.RefObject<HTMLDivElement>}
             onImageClick={handleImageClick}
             onHotspotClick={handleSpotSelect}
-          />
+            />
 
           <RightSidebar
+            onSave={handleSave}
             onSpotImageUpload={handleSpotImageUpload}
             onSpotNameChange={handleSpotNameChange}
             onDeleteSpot={handleDeleteSpot}
@@ -154,7 +154,7 @@ const ProjectPage: React.FC = () => {
 
 interface MapViewProps {
   project: Project; // Replace with proper type
-  hotspots: Hotspots[];
+  hotspots: Hotspot[];
   selectedHotspot: string | null;
   imageRef: React.RefObject<HTMLDivElement>;
   onImageClick: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -201,7 +201,7 @@ const MapView: React.FC<MapViewProps> = ({
 );
 
 interface HotspotMarkersProps {
-  hotspots: Hotspots[];
+  hotspots: Hotspot[];
   selectedHotspot: string | null;
   onHotspotClick: (id: string) => void;
 }

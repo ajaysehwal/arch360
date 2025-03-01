@@ -1,5 +1,6 @@
 "use client";
 import QuickActions from "@/components/quickActions";
+export const runtime = "edge";
 
 export default function Page() {
   return (

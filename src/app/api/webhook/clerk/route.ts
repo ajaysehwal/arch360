@@ -3,6 +3,7 @@ import { UserJSON, WebhookEvent } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
+export const runtime = "edge";
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET!;
 
@@ -28,9 +29,12 @@ async function validateRequest(request: Request): Promise<WebhookEvent> {
     if (!svixHeaders["svix-id"] || !svixHeaders["svix-timestamp"] || !svixHeaders["svix-signature"]) {
       throw new Error("Missing Svix headers");
     }
-
     const wh = new Webhook(webhookSecret);
-    return wh.verify(payloadString, svixHeaders) as WebhookEvent;
+    return wh.verify(payloadString, {
+      "svix-id": svixHeaders["svix-id"]!,
+      "svix-timestamp": svixHeaders["svix-timestamp"]!,
+      "svix-signature": svixHeaders["svix-signature"]!
+    }) as WebhookEvent;
   } catch (error) {
     console.error("Webhook validation failed:", error);
     throw new Error("Invalid webhook request");

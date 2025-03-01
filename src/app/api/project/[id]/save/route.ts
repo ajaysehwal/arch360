@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { Hotspot } from "@prisma/client";
 
+export const runtime = "edge";
 
 export async function POST(
   request: Request,

@@ -11,6 +11,15 @@ import { NewProject } from "@/components/dialogs/new-project";
 import { Badge } from "@/components/ui/badge";
 import { useProjectStore } from "@/store/project";
 
+interface QuickActionCardProps {
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  title: string;
+  description: string;
+  action: React.ReactNode;
+  comingSoon?: boolean;
+  gradient?: string;
+}
+
 const QuickActionCard = ({
   icon: Icon,
   title,
@@ -18,7 +27,7 @@ const QuickActionCard = ({
   action,
   comingSoon = false,
   gradient = "from-purple-500 to-purple-700",
-}) => {
+}: QuickActionCardProps) => {
   return (
     <div
       className={`group relative overflow-hidden rounded-xl border bg-white p-6 transition-all duration-300 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900 

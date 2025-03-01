@@ -1,6 +1,7 @@
 "use client";
 import { SignUp } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
+export const runtime = "edge";
 
 export default function Page() {
   return (

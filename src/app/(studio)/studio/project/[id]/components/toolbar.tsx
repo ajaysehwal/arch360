@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useControls } from "react-zoom-pan-pinch";

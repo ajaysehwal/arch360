@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Image as ImageIcon, Edit2, Trash2, Upload } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import Image from 'next/image';
-import { Hotspots } from '@prisma/client';
+import { Hotspot } from '@prisma/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SpotListProps {
-  hotspots: Hotspots[];
+  hotspots: Hotspot[];
   selectedHotspot: string | null;
   onSpotNameChange: (id: string, value: string) => void;
   onSpotImageUpload: (file: File | null, spotId: string) => void;
@@ -22,12 +22,14 @@ const SpotList: React.FC<SpotListProps> = ({
   onDeleteSpot,
 }) => {
   const getDropzone = (spotId: string) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const onDrop = useCallback((acceptedFiles: File[]) => {
       if (acceptedFiles?.[0]) {
         onSpotImageUpload(acceptedFiles[0], spotId);
       }
     }, [spotId]);
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     return useDropzone({
       onDrop,
       accept: {
@@ -84,7 +86,7 @@ const SpotList: React.FC<SpotListProps> = ({
                   </motion.div>
                   <input
                     type="text"
-                    value={spot.label}
+                    value={spot.label || ""}
                     onChange={(e) => onSpotNameChange(spot.id, e.target.value)}
                     className="flex-1 px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700
                       bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100

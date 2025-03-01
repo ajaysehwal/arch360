@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/alt-text */
 import React, { JSX, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import axios, { AxiosError } from "axios";

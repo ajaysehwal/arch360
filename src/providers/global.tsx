@@ -43,6 +43,7 @@ export function GlobalProvider({ children }: GlobalProviderProps) {
 
   useEffect(() => {
     initializeApp();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized]);
 
   return (

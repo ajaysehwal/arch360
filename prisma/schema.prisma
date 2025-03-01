@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id             String          @id @unique // Clerk user ID (sub)
+  id             String          @id 
   email          String          @unique
   name           String?
   createdAt      DateTime        @default(now())
@@ -29,7 +26,6 @@ model Project {
   ownerId       String
   floorMapUrl   String
   topViewUrl    String?
-
   owner         User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   hotspots      Hotspot[]
 }
@@ -44,7 +40,6 @@ model Hotspot {
   label     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@index([projectId])
 }
 
@@ -64,9 +59,7 @@ model Subscription {
   billingCycleEnd    DateTime?
   paymentMethodId    String?
   metadata           Json?
-
   user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@index([userId])
 }
 

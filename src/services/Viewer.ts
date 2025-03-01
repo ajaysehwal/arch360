@@ -1,18 +1,18 @@
 import { VirtualTourPlugin } from "@photo-sphere-viewer/virtual-tour-plugin";
 import { Viewer } from "@photo-sphere-viewer/core";
-import { Hotspots } from "@prisma/client";
+import { Hotspot } from "@prisma/client";
 
 type Node = {
   id: string;
   panorama: string;
-  links: { nodeId: string; position: { textureX: number; textureY: number } }[]; // ✅ Fixed type
+  links: { nodeId: string; position?: { textureX: number; textureY: number } }[]; // ✅ Fixed type
 };
 
 export class TourViewer {
   private viewer: Viewer;
   private nodes: Node[];
 
-  constructor(hotspots: Hotspots[], containerId: string) {
+  constructor(hotspots: Hotspot[], containerId: string) {
     this.nodes = this.getNodes(hotspots);
     this.viewer = new Viewer({
       container: document.getElementById(containerId) as HTMLElement, // ✅ Ensure valid element
@@ -31,7 +31,7 @@ export class TourViewer {
     return this.viewer;
   }
 
-  private getNodes(hotspots: Hotspots[]): Node[] {
+  private getNodes(hotspots: Hotspot[]): Node[] {
     const nodes: Node[] = [];
 
     hotspots.forEach((hotspot, index) => {
@@ -44,8 +44,9 @@ export class TourViewer {
 
       nodes.push({
         id: hotspot.id,
-        panorama: `http://localhost:3004/api/image/${hotspot.url.split(".net")[1]}`,
+        panorama: `${process.env.NEXT_PUBLIC_URL}/api/image/${hotspot.url.split(".r2.dev")[1]}`,
         links: links, // ✅ Now linking to other nodes
+
       });
     });
 

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+export const runtime = "edge";
 
 export const POST = async (req: Request) => {
   const { userId } = await auth();
@@ -15,6 +16,7 @@ export const POST = async (req: Request) => {
   }
   try {
     const { name, description, floor_map_url, top_view_url } = await req.json();
+    console.log(name,floor_map_url)
     if (!name || !floor_map_url) {
       return NextResponse.json(
         { success: false, message: "Please fill all the fields" },

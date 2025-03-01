@@ -1,6 +1,5 @@
 import React from 'react';
 import { FolderPlus, Sparkles } from 'lucide-react';
-import { NewProject } from '@/components/dialogs/new-project';
 
 const EmptyProjectsState = () => {
   return (

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { s3 } from "@/lib/s3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { sanitizeFileName, validateFile } from "@/utils/api-validation";
-import logger from "@/lib/logger";
+export const runtime = "edge";
 
 export const POST = async (req: Request) => {
   try {
@@ -26,7 +26,7 @@ export const POST = async (req: Request) => {
     const fileName = `${timestamp}-${randomString}-${sanitizedFileName}`;
     const buffer = Buffer.from(await file.arrayBuffer());
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
+      Bucket: process.env.R2_BUCKET_NAME,
       Key: `${userId}/${fileName}`,
       Body: buffer,
       ContentType: file.type,
@@ -35,18 +35,14 @@ export const POST = async (req: Request) => {
     });
 
     await s3.send(command);
-    const cdnUrl = `${process.env.CLOUDFRONT_URL}/${userId}/${fileName}`;
     return NextResponse.json({
       success: true,
-      url: cdnUrl,
+      url: `https://pub-3879bdda317746f28cf98f17e4474ea2.r2.dev/${userId}/${fileName}`,
       key: `${userId}/${fileName}`,
       message: "File uploaded successfully",
     });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
-    logger.error("[Upload Error]:", {
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
 
     return NextResponse.json(
       {

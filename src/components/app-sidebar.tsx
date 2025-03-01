@@ -1,10 +1,8 @@
 "use client";
 import * as React from "react";
 import {
-  ArchiveX,
   Command,
   Database,
-  File,
   Inbox,
   Send,
   Trash2,

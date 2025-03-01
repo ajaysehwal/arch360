@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Hotspots } from '@prisma/client';
+import { Hotspot } from '@prisma/client';
 import axios from 'axios';
 
 interface Position {
@@ -8,7 +8,7 @@ interface Position {
 }
 
 export const useHotspots = (projectId: string) => {
-  const [hotspots, setHotspots] = useState<Hotspots[]>([]);
+  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [selectedHotspot, setSelectedHotspot] = useState<string | null>(null);
   const [isAddingHotspot, setIsAddingHotspot] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +44,7 @@ export const useHotspots = (projectId: string) => {
   }, [selectedHotspot]);
 
   const handleAddHotspot = (position: Position) => {
-    const newHotspot: Hotspots = {
+    const newHotspot: Hotspot = {
       id: Date.now().toString(),
       x: position.x,
       y: position.y,

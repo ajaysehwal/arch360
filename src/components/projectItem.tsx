@@ -27,7 +27,7 @@ export function ProjectItem({ project }: ProjectItemProps) {
   const isDeleteEnabled = deleteText.toLowerCase() === "delete";
   const handleDelete = async () => {
     try {
-      await fetch(`/api/project/${project.id}`, {
+      await fetch(`/api/project/${project.id}/delete`, {
         method: "DELETE",
       });
       removeProject(project.id);
